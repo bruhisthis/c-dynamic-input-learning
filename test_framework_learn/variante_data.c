@@ -23,9 +23,15 @@ typedef struct VARIABLE_VARAINT{
     value val;
 } variant;
 
+typedef enum   SING_TYPE{   
+    POSSITIVE,
+    NEGATIVE
+} sing_var;
+
 typedef struct DATA_INFORAMTION_{
     type_data type;
     int float_point_index;
+    char sing;
 } data_info;
 
 void print_variant(variant *v) {
@@ -75,10 +81,32 @@ data_info* type_detecetion(char *buff,int size){
     
     int count_point = 0;
     int index_point_float = -1;
+    int count_sing = 0;
     bool found_chars = false;
+    bool found_sing = false;
+
+    if (buff[0] == '-')
+    {
+        found_sing = true;
+        count_sing++;
+    }
+
+    
 
     for (int i = 0; i < size; i++)
     {
+        if (buff[i] == '-')
+        {
+            if (found_sing)
+            {
+                found_chars = true;
+                break;
+            }
+            found_sing = true;
+            count_sing++;
+            continue;
+        }
+        
         if (buff[i] >= 'A' && buff[i] <= 'Z'){
             found_chars = true;
             break;
@@ -99,7 +127,7 @@ data_info* type_detecetion(char *buff,int size){
             found_chars = true;
             break;
         }
-
+        
         if (buff[i] == '.' && !found_chars)
         {
             if (count_point >1)
@@ -131,11 +159,23 @@ data_info* type_detecetion(char *buff,int size){
     {
         data->float_point_index = index_point_float;
         data->type = FLOAT_TYPE;
+        if (found_sing)
+        {
+            data->sing = '-';
+        }else{
+            data->sing = '+';
+        }
         return data;
     }
 
     data->type = INT_TYPE;
     data->float_point_index = -1;
+    if (found_sing)
+        {
+            data->sing = '-';
+        }else{
+            data->sing = '+';
+        }
     return data;
 }
 
@@ -200,12 +240,21 @@ float pares_to_float(char *buff,int size,data_info *a){
         exit(1);
     }
 
+    int start_index = 0;
+    int sing = 1;
+    if (a->sing == '-')
+    {
+        sing = -1;
+        start_index = 1;
+    }
+    
+
     char zero_base = '0';
     float number = 0;
     int integer_part = 0;
     int float_point_part = 0;
 
-    for (int i = 0; i < a->float_point_index; i++)
+    for (int i = start_index; i < a->float_point_index; i++)
     {
         int pw = power_integer(BASE,integer_digits-i-1);
 
@@ -231,7 +280,7 @@ float pares_to_float(char *buff,int size,data_info *a){
         float_point_part += pares_char(buff[i],zero_base,pw);
     }
 
-    number = (float) integer_part;
+    number = (float) integer_part*sing;
 
     if (float_point_part == 0)
     { 
@@ -239,7 +288,7 @@ float pares_to_float(char *buff,int size,data_info *a){
     }
 
     int exposant = fraction_digits;
-    float float_point_p = (float) float_point_part / (float) power_integer(10,exposant);
+    float float_point_p = (float) float_point_part*sing / (float) power_integer(10,exposant);
 
     number += float_point_p;
 
@@ -267,13 +316,21 @@ int pares_to_int(char *buff,int size,data_info *a){
         exit(1);
     }
     
+    int start_index = 0;
+    int sing = 1;
+    if (a->sing == '-')
+    {
+        sing = -1;
+        start_index = 1;
+    }
+    
     char zero_base = '0';
     int ignored_space = padd_to_left_space(buff,size);
     int number = 0;
     // size is the number of input characters; the terminator is not counted.
     int digits_count = size-ignored_space;
 
-    for (int i = 0; i < digits_count; i++)
+    for (int i = start_index; i < digits_count; i++)
     {
         int pw = power_integer(BASE,digits_count-i-1);
         if (pw == -1)
@@ -285,7 +342,7 @@ int pares_to_int(char *buff,int size,data_info *a){
         number += pares_char(buff[i],zero_base,pw);
     }
 
-    return number;
+    return number*sing;
 }
 
 variant* detecte_type_and_read_value(char *buff,int size){
